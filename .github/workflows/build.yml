@@ -1,0 +1,64 @@
+name: Build and test Nextcloud 35
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gd, curl, mbstring, intl, sqlite3, pdo_sqlite, zip, xml
+          tools: phpunit:11
+          coverage: none
+      - run: npm ci
+      - run: npm test
+      - run: make test-packaging
+      - name: Build installable app
+        run: make appstore
+      - name: PHP syntax
+        run: find lib appinfo templates -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Get Nextcloud 35
+        run: |
+          curl --fail --location --retry 3 https://download.nextcloud.com/server/releases/nextcloud-35.0.0.tar.bz2 -o "$RUNNER_TEMP/nextcloud.tar.bz2"
+          tar -xjf "$RUNNER_TEMP/nextcloud.tar.bz2" -C "$RUNNER_TEMP"
+      - name: Runtime regression tests against Nextcloud 35
+        env:
+          NEXTCLOUD_ROOT: ${{ runner.temp }}/nextcloud
+        run: phpunit tests/runtime
+      - name: Install the packaged app on Nextcloud 35
+        run: |
+          cd "$RUNNER_TEMP/nextcloud"
+          php -d memory_limit=512M occ maintenance:install --database sqlite --admin-user smoke-admin --admin-pass test-only-ci-password
+          tar -xzf "$GITHUB_WORKSPACE/build/artifacts/appstore/riotchat-0.22.0.tar.gz" -C apps
+          php occ app:enable riotchat
+          php occ app:list --output=json | python3 -c 'import json,sys; assert json.load(sys.stdin)["enabled"]["riotchat"] == "0.22.0"'
+      - name: HTTP smoke checks
+        env:
+          NEXTCLOUD_URL: http://127.0.0.1:8080
+          NEXTCLOUD_USER: smoke-admin
+          NEXTCLOUD_PASSWORD: test-only-ci-password
+        run: |
+          cd "$RUNNER_TEMP/nextcloud"
+          php occ config:system:set trusted_domains 1 --value=127.0.0.1
+          php -d memory_limit=512M -S 127.0.0.1:8080 > "$RUNNER_TEMP/nextcloud-http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          python3 "$GITHUB_WORKSPACE/tests/http-smoke.py"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: riotchat-nextcloud35
+          path: build/artifacts/appstore/*
+          if-no-files-found: error

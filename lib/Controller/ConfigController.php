@@ -28,6 +28,8 @@ namespace OCA\RiotChat\Controller;
 use OCA\RiotChat\AppInfo\Application;
 
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\Defaults;
 use OCP\IConfig;
@@ -66,10 +68,8 @@ class ConfigController extends Controller {
 		$this->urlGenerator = $urlGenerator;
 	}
 
-	/**
-	 * @NoCSRFRequired
-	 * @NoAdminRequired
-	 */
+	#[NoCSRFRequired]
+	#[NoAdminRequired]
 	public function config() {
 		$custom_json = $this->config->getAppValue(Application::APP_ID, 'custom_json', '');
 		if ($custom_json !== '') {
@@ -82,7 +82,7 @@ class ConfigController extends Controller {
 		$config = [
 			'disable_guests' => true,
 			'piwik' => false,
-			'settingDefaults' => [
+			'setting_defaults' => [
 				'language' => $lang,
 			],
 			'disable_custom_urls' => $this->config->getAppValue(Application::APP_ID, 'disable_custom_urls', Application::AvailableSettings['disable_custom_urls']) === 'true',
@@ -95,14 +95,14 @@ class ConfigController extends Controller {
 			],
 			'brand' => $this->defaults->getName(),
 			'branding' => [
-				'authHeaderLogoUrl' => $this->defaults->getLogo(),
+				'auth_header_logo_url' => $this->defaults->getLogo(),
 			],
-			'showLabsSettings' => $this->config->getAppValue(Application::APP_ID, 'show_labs_settings', Application::AvailableSettings['show_labs_settings']) === 'true',
+			'show_labs_settings' => $this->config->getAppValue(Application::APP_ID, 'show_labs_settings', Application::AvailableSettings['show_labs_settings']) === 'true',
 			'sso_immediate_redirect' => $this->config->getAppValue(Application::APP_ID, 'sso_immediate_redirect', Application::AvailableSettings['sso_immediate_redirect']) === 'true',
 		];
 
 		if ($this->config->getAppValue(Application::APP_ID, 'set_custom_permalink', Application::AvailableSettings['set_custom_permalink']) === 'true') {
-			$config['permalinkPrefix'] = rtrim($this->urlGenerator->linkToRouteAbsolute('riotchat.app.index'), '/');
+			$config['permalink_prefix'] = rtrim($this->urlGenerator->linkToRouteAbsolute('riotchat.app.index'), '/');
 		}
 
 		$jitsi_domain = $this->config->getAppValue(Application::APP_ID, 'jitsi_preferred_domain', Application::AvailableSettings['jitsi_preferred_domain']);
@@ -132,10 +132,8 @@ class ConfigController extends Controller {
 		return new JSONResponse($config);
 	}
 
-	/**
-	 * @NoCSRFRequired
-	 * @NoAdminRequired
-	 */
+	#[NoCSRFRequired]
+	#[NoAdminRequired]
 	public function rootConfig(): JSONResponse {
 		return $this->config();
 	}

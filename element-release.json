@@ -1,0 +1,25 @@
+{
+  "version": "1.12.29",
+  "tag": "v1.12.29",
+  "url": "https://github.com/element-hq/element-web/releases/download/v1.12.29/element-v1.12.29.tar.gz",
+  "sha256": "17431dd1853032f55257e5155979396758dbf2e98d969407612a4f320865ff87",
+  "source": "https://github.com/element-hq/element-web/tree/v1.12.29",
+  "source_archive": "https://github.com/element-hq/element-web/archive/refs/tags/v1.12.29.tar.gz",
+  "licenses": [
+    {
+      "name": "LICENSE-AGPL-3.0",
+      "url": "https://raw.githubusercontent.com/element-hq/element-web/v1.12.29/LICENSE-AGPL-3.0",
+      "sha256": "5132c7f0475b02c8107a2e0f0363e70423c62d2664ab927e76193226e5e05905"
+    },
+    {
+      "name": "LICENSE-GPL-3.0",
+      "url": "https://raw.githubusercontent.com/element-hq/element-web/v1.12.29/LICENSE-GPL-3.0",
+      "sha256": "8b1ba204bb69a0ade2bfcf65ef294a920f6bb361b317dba43c7ef29d96332b9b"
+    },
+    {
+      "name": "LICENSE-COMMERCIAL",
+      "url": "https://raw.githubusercontent.com/element-hq/element-web/v1.12.29/LICENSE-COMMERCIAL",
+      "sha256": "1197de6d29c5037c6d9b5c3607d72eaa90b5045f2d623400e870825fdcf7666e"
+    }
+  ]
+}

@@ -12,20 +12,21 @@ This project is not affiliated, associated, authorized, endorsed by, or in any w
 
 The name Element as well as related names, marks, emblems and images are registered trademarks of their respective owners.
 
-The upstream project can be found at [https://github.com/vector-im/element-web](https://github.com/vector-im/element-web).]]></description>
-    <version>0.21.0</version>
+The upstream project can be found at [https://github.com/element-hq/element-web](https://github.com/element-hq/element-web).]]></description>
+    <version>0.22.0</version>
     <licence>agpl</licence>
     <author mail="gary@garykim.dev" homepage="https://garykim.dev">Gary Kim</author>
     <namespace>RiotChat</namespace>
     <category>social</category>
     <category>integration</category>
-    <website>https://github.com/gary-kim/riotchat</website>
-    <bugs>https://github.com/gary-kim/riotchat/issues</bugs>
-    <repository type="git">https://github.com/gary-kim/riotchat.git</repository>
+    <website>https://github.com/Kakise/riotchat</website>
+    <bugs>https://github.com/Kakise/riotchat/issues</bugs>
+    <repository type="git">https://github.com/Kakise/riotchat.git</repository>
     <screenshot>https://garykim.dev/res/large/riotchat-for-nextcloud/screenshot-2.png</screenshot>
     <screenshot>https://garykim.dev/res/large/riotchat-for-nextcloud/screenshot-3.png</screenshot>
     <dependencies>
-        <nextcloud min-version="30" max-version="33"/>
+        <php min-version="8.3"/>
+        <nextcloud min-version="35" max-version="35"/>
     </dependencies>
     <settings>
         <admin>OCA\RiotChat\Settings\Admin</admin>

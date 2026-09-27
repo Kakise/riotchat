@@ -1,3 +1,10 @@
+# Fork release 0.22.0
+
+- Bundle official Element Web 1.12.29 with a pinned SHA-256 and source/license provenance.
+- Target Nextcloud 35 and PHP 8.3 or later.
+- Update Element configuration keys and Nextcloud runtime integration.
+- Provide a compiled, ready-to-install release archive and manual/Docker installation instructions.
+
 # Element for Nextcloud Changelog
 
 All notable changes to this project will be documented in this file.

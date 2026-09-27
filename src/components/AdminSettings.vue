@@ -262,12 +262,12 @@ export default {
     computed: {
         featureDocumentation () {
             return t('riotchat', 'These are experimental features in Element that you can enable. For information on what each feature is, check out the documentation for it {linkstart}here{linkend}.')
-                .replace('{linkstart}', `<a href="https://github.com/vector-im/riot-web/blob/${RIOT_WEB_HASH}/docs/labs.md" target="_blank" rel="noopener noreferrer">`)
+                .replace('{linkstart}', `<a href="https://github.com/element-hq/element-web/blob/${RIOT_WEB_HASH}/docs/labs.md" target="_blank" rel="noopener noreferrer">`)
                 .replace('{linkend}', `</a>`);
         },
         riotWebDocumentation () {
             return t('riotchat', 'This version of Element for Nextcloud is based on Element Web {riotWebVersion}. Check out the source code for Element Web {linkstart}here{linkend}.', { riotWebVersion: RIOT_WEB_VERSION })
-                .replace('{linkstart}', `<a href="https://github.com/vector-im/riot-web/tree/${RIOT_WEB_HASH}" target="_blank" rel="noopener noreferrer">`)
+                .replace('{linkstart}', `<a href="https://github.com/element-hq/element-web/tree/${RIOT_WEB_HASH}" target="_blank" rel="noopener noreferrer">`)
                 .replace('{linkend}', `</a>`);
         },
         customConfigEnabled () {

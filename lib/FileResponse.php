@@ -24,11 +24,10 @@ declare(strict_types=1);
 
 namespace OCA\RiotChat;
 
-use OC\AppFramework\Http;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\ICallbackResponse;
 use OCP\AppFramework\Http\IOutput;
 use OCP\AppFramework\Http\Response;
-use TypeError;
 
 class FileResponse extends Response implements ICallbackResponse {
 	private $data;
@@ -36,15 +35,9 @@ class FileResponse extends Response implements ICallbackResponse {
 
 	public function __construct($data, int $length, int $lastModified, string $mimeType, string $name, int $statusCode = Http::STATUS_OK,
 		array $headers = []) {
+		parent::__construct($statusCode, $headers);
 		$this->data = $data;
 		$this->name = $name;
-		$this->setStatus($statusCode);
-
-		try {
-			$this->setHeaders(array_merge($this->getHeaders(), $headers));
-		} catch (TypeError $ex) {
-			$this->setHeaders($headers);
-		}
 
 		$this->addHeader('Content-Length', $length);
 		$this->addHeader('Content-Type', $mimeType);

@@ -26,10 +26,11 @@ declare(strict_types=1);
 
 namespace OCA\RiotChat\Controller;
 
-use OC\Security\CSP\ContentSecurityPolicy;
-
 use OCA\RiotChat\AppInfo\Application;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\FeaturePolicy;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IConfig;
@@ -50,10 +51,8 @@ class AppController extends Controller {
 		$this->config = $config;
 	}
 
-	/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
 	public function index() {
 		$response = new TemplateResponse('riotchat', 'index');
 
@@ -69,7 +68,7 @@ class AppController extends Controller {
 		$csp->addAllowedFrameDomain($default_server_domain);
 
 		if ($custom_sso_iframe_domain !== '') {
-			$custom_domain_arr = preg_split('/\s+/', $custom_sso_iframe_domain, PREG_SPLIT_NO_EMPTY);
+			$custom_domain_arr = preg_split('/\s+/', $custom_sso_iframe_domain, -1, PREG_SPLIT_NO_EMPTY);
 			foreach ($custom_domain_arr as $tmp_domain) {
 				$csp->addAllowedFrameDomain($tmp_domain);
 			}

@@ -1,48 +1,34 @@
-app_name=$(notdir $(CURDIR))
-build_tools_directory=$(CURDIR)/build/tools
-source_build_directory=$(CURDIR)/build/artifacts/source
-source_package_name=$(source_build_directory)/$(app_name)
-appstore_build_directory=$(CURDIR)/build/artifacts/appstore
-appstore_package_name=$(appstore_build_directory)/$(app_name)
-npm?=$(shell which npm 2> /dev/null)
-node?=$(shell which node 2> /dev/null)
-SHELL = /bin/bash
+SHELL := /bin/bash
+.DEFAULT_GOAL := all
 
-all: dev-setup build
+.PHONY: all dev-setup element build clean distclean dist source appstore test-packaging
 
-# Set up the dev environment
-.PHONY: dev-setup
-dev-setup: 3rdparty/riot
-	npm i
+all: dev-setup
+	$(MAKE) build
 
-3rdparty/riot: 3rdparty/riot-web
-	tmpdir=$$(mktemp -d); (git clone 3rdparty/riot-web $${tmpdir}/riot-web && rm -rf 3rdparty/riot && ( cd $${tmpdir}/riot-web && pnpm install && (VERSION=$$(git describe --abbrev=0 --tags) NX_DAEMON=false NX_TUI=false pnpm --filter element-web build) && cp apps/web/config.sample.json apps/web/webapp/ && cp apps/web/element.io/develop/config.json apps/web/webapp/develop.config.json && git describe --abbrev=0 --tags | cut -c 2- > apps/web/webapp/version) && mv $${tmpdir}/riot-web/apps/web/webapp 3rdparty/riot) || (cd 3rdparty/riot-web && pnpm remove @nextcloud/browserslist-config && exit 1); rc=$$?; rm -rf $${tmpdir}; exit $${rc}
+# Install the adapter's locked dependencies. Element itself is a verified release.
+dev-setup:
+	npm ci
 
-.PHONY: build
-build:
+element:
+	python3 scripts/fetch-element.py
+
+build: element
 	npm run build
 
-.PHONY: clean
 clean:
-	rm -rf ./build
+	rm -rf build
 
-.PHONY: distclean
 distclean: clean
-	rm -rf node_modules
-	rm -rf js
+	rm -rf node_modules js 3rdparty/riot
 
-.PHONY: dist
 dist: appstore source
 
-.PHONY: source
-source:
-	rm -rf $(source_build_directory)
-	mkdir -p $(source_build_directory)
-	tar cvzf $(source_package_name).tar.gz ../$(app_name) \
-	--exclude-vcs \
-	--exclude="../$(app_name)/build" \
-	--exclude="../$(app_name)/node_modules" \
-
-.PHONY: appstore
 appstore:
+	bash scripts/release.sh
 
+source:
+	bash scripts/release.sh --source
+
+test-packaging:
+	python3 tests/packaging_test.py

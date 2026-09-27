@@ -1,13 +1,13 @@
 {
   "name": "riotchat",
-  "version": "0.21.0",
-  "description": "Still in development",
+  "version": "0.22.0",
+  "description": "Element Web integrated into Nextcloud 35",
   "main": "index.js",
   "directories": {
     "lib": "lib"
   },
   "scripts": {
-    "test": "npx eslint --ext .js,.vue src",
+    "test": "npm run eslint && node --test tests/frontend.test.cjs",
     "eslint": "npx eslint --ext .js,.vue --no-eslintrc -c ./src/.eslintrc.json src",
     "eslint:fix": "npx eslint --ext .js,.vue --no-eslintrc -c ./src/.eslintrc.json src --fix",
     "build": "NODE_ENV=production npx webpack --progress",
@@ -16,14 +16,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gary-kim/riotchat.git"
+    "url": "git+https://github.com/Kakise/riotchat.git"
   },
   "author": "Gary Kim <gary@garykim.dev>",
   "license": "AGPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/gary-kim/riotchat/issues"
+    "url": "https://github.com/Kakise/riotchat/issues"
   },
-  "homepage": "https://github.com/gary-kim/riotchat#readme",
+  "homepage": "https://github.com/Kakise/riotchat#readme",
   "devDependencies": {
     "@babel/core": "^7.28.5",
     "@babel/eslint-parser": "^7.28.5",

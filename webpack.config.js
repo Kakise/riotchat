@@ -1,11 +1,10 @@
 const path = require('path');
-const { execSync } = require('child_process');
 const { VueLoaderPlugin } = require('vue-loader');
 const webpack = require('webpack');
 
-const RIOT_WEB_VERSION = execSync('git describe --abbrev=0 --tags', { cwd: path.resolve(__dirname, './3rdparty/riot-web') }).toString();
-const RIOT_WEB_HASH = execSync(`git rev-parse -- ${RIOT_WEB_VERSION}`, { cwd: path.resolve(__dirname, './3rdparty/riot-web') }).toString();
-
+const elementRelease = require('./element-release.json');
+const RIOT_WEB_VERSION = elementRelease.tag;
+const RIOT_WEB_HASH = elementRelease.tag;
 
 module.exports = {
     entry: {
@@ -16,6 +15,7 @@ module.exports = {
     output: {
         path: path.join(__dirname, 'js'),
         publicPath: '/js/',
+        clean: true,
     },
     devtool: 'source-map',
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',

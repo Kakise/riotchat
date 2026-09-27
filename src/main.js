@@ -32,18 +32,29 @@ function main () {
     originalTitle = document.title;
 
     iframe = document.getElementById('riot-iframe');
+    iframe.onload = onIframeLoad;
     if (!window.location.hash && loadState('riotchat', 'disable_custom_urls') === 'true' && !window.localStorage.getItem('mx_user_id')) {
         iframe.src = generateUrl('/apps/riotchat/riot/') + '#/login';
         window.location.hash = '#/login';
     } else {
         iframe.src = generateUrl('/apps/riotchat/riot/') + window.location.hash;
     }
-    iframe.onload = onIframeLoad;
 }
 
 function onIframeLoad () {
+    // The initial about:blank document has no title. An SSO redirect can also
+    // temporarily put the iframe on an origin the parent cannot inspect.
+    let title;
+    try {
+        title = iframe.contentWindow.document.querySelector('title');
+    } catch (error) {
+        return;
+    }
+    if (!title) {
+        return;
+    }
     const titleObserver = new MutationObserver(setTitle);
-    titleObserver.observe(iframe.contentWindow.document.querySelector('title'), {
+    titleObserver.observe(title, {
         childList: true,
         attributes: true,
         characterData: true,

@@ -25,3 +25,8 @@
 /CONTRIBUTING.md
 /.tx/
 /.l10nignore
+/build/
+/tests/
+/.github/
+/.nvmrc
+/.php-cs-fixer.dist.php

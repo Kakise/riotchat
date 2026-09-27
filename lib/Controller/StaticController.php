@@ -26,11 +26,13 @@ declare(strict_types=1);
 
 namespace OCA\RiotChat\Controller;
 
-use OC\ForbiddenException;
-use OC\Security\CSP\ContentSecurityPolicy;
 use OC\Security\CSP\ContentSecurityPolicyNonceManager;
 use OCA\RiotChat\FileResponse;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\Attribute\PublicPage;
+use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\FeaturePolicy;
 use OCP\AppFramework\Http\NotFoundResponse;
 use OCP\Files\IMimeTypeDetector;
@@ -43,7 +45,11 @@ class StaticController extends Controller {
 	/** @var IMimeTypeDetector */
 	private $mimeTypeHelper;
 
-	/** @var ContentSecurityPolicyNonceManager */
+	/**
+	 * Nextcloud has no public nonce service. Use the same manager as its CSP
+	 * middleware so Element's entry scripts receive the response's nonce.
+	 * @var ContentSecurityPolicyNonceManager
+	 */
 	private $nonceManager;
 
 	/** @var IL10N */
@@ -78,28 +84,31 @@ class StaticController extends Controller {
 		$this->config = $config;
 	}
 
-	/**
-	 * @NoCSRFRequired
-	 * @NoAdminRequired
-	 */
+	#[NoCSRFRequired]
+	#[NoAdminRequired]
 	public function index() {
 		return $this->riot('index.html');
 	}
 
-	/**
-	 * @NoCSRFRequired
-	 * @NoAdminRequired
-	 *
-	 * @param string $path
-	 * @throws ForbiddenException
-	 * @return FileResponse
-	 */
-	public function riot(string $path) {
-		if (strpos($path, '..') !== false) {
-			throw new ForbiddenException();
+	#[NoCSRFRequired]
+	#[NoAdminRequired]
+	public function riot(string $path): FileResponse|NotFoundResponse {
+		if (str_contains($path, "\0") || str_contains($path, '\\') || in_array('..', explode('/', $path), true)) {
+			return new NotFoundResponse();
 		}
 
-		$localPath = __DIR__ . '/../../3rdparty/riot/' . $path;
+		$root = realpath(__DIR__ . '/../../3rdparty/riot');
+		if ($root === false) {
+			return new NotFoundResponse();
+		}
+		$localPath = $root . '/' . ltrim($path, '/');
+		if (is_dir($localPath)) {
+			$localPath .= '/index.html';
+		}
+		$localPath = realpath($localPath);
+		if ($localPath === false || !str_starts_with($localPath, $root . '/') || !is_file($localPath) || !is_readable($localPath)) {
+			return new NotFoundResponse();
+		}
 
 		return $this->createFileResponse($localPath);
 	}
@@ -107,15 +116,16 @@ class StaticController extends Controller {
 	/**
 	 * Special route for '/bundles/{hash}/usercontent.js' as that request is made without authentication
 	 *
-	 * @PublicPage
-	 * @NoCSRFRequired
-	 * @NoAdminRequired
-	 *
 	 * @param string $version
-	 * @throws ForbiddenException
-	 * @return FileResponse
+	 * @return FileResponse|NotFoundResponse
 	 */
+	#[PublicPage]
+	#[NoCSRFRequired]
+	#[NoAdminRequired]
 	public function usercontent(string $version) {
+		if (!preg_match('/^[a-zA-Z0-9_-]+$/D', $version)) {
+			return new NotFoundResponse();
+		}
 		return $this->riot('bundles/' . $version . '/usercontent.js');
 	}
 
@@ -124,16 +134,10 @@ class StaticController extends Controller {
 	 * @return FileResponse|NotFoundResponse
 	 */
 	private function createFileResponse($path) {
-		// Maybe need to send an index.html file
-		if (substr($path, -1) === '/') {
-			return $this->createFileResponse($path . 'index.html');
-		}
-
-		if (!file_exists($path)) {
+		$content = file_get_contents($path);
+		if ($content === false) {
 			return new NotFoundResponse();
 		}
-
-		$content = file_get_contents($path);
 		return $this->createFileResponseWithContent($path, $content);
 	}
 
@@ -149,12 +153,21 @@ class StaticController extends Controller {
 			$content = $this->addScriptNonce($content, $this->nonceManager->getNonce());
 		}
 
-		$mime = $this->mimeTypeHelper->detectPath($path);
-		switch (pathinfo($path, PATHINFO_EXTENSION)) {
-			case 'wasm':
-				$mime = 'application/wasm';
-				break;
-		}
+		// Nextcloud's detector is intended for user files; executable web assets
+		// need explicit MIME types, especially service workers and WebAssembly.
+		$mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+			'html' => 'text/html; charset=utf-8',
+			'js', 'mjs' => 'application/javascript',
+			'css' => 'text/css',
+			'json', 'map' => 'application/json',
+			'wasm' => 'application/wasm',
+			'woff' => 'font/woff',
+			'woff2' => 'font/woff2',
+			'ttf' => 'font/ttf',
+			'otf' => 'font/otf',
+			'svg' => 'image/svg+xml',
+			default => $this->mimeTypeHelper->detectPath($path),
+		};
 
 		$response = new FileResponse(
 			$content,
@@ -164,25 +177,37 @@ class StaticController extends Controller {
 			basename($path)
 		);
 
-		// we can't cache the html since the nonce might need to get updated
-		if ($cache && !$isHTML) {
+		// Entry points, translations and configuration must refresh after updates.
+		// HTML also contains the per-request Nextcloud CSP nonce.
+		$refreshOnLoad = $isHTML || pathinfo($path, PATHINFO_EXTENSION) === 'json'
+			|| str_contains($path, '/i18n/') || in_array(basename($path), ['version', 'sw.js'], true);
+		if ($cache && !$refreshOnLoad) {
 			$response->cacheFor(3600);
+		} else {
+			$response->cacheFor(0);
+			// In particular, never reuse HTML with an older CSP nonce via a 304.
+			$response->setLastModified(null);
 		}
 
 		$csp = new ContentSecurityPolicy();
+		$csp->allowEvalWasm(true);
+		// Nextcloud removes 'self' from script-src when adding its nonce.
+		// Workers still need the explicit host for same-origin importScripts.
 		$csp->addAllowedScriptDomain($this->request->getServerHost());
-		$csp->addAllowedScriptDomain('\'unsafe-eval\'');
-		$csp->addAllowedScriptDomain('\'unsafe-inline\'');
+		$csp->addAllowedScriptDomain('https://www.recaptcha.net/recaptcha/');
+		$csp->addAllowedScriptDomain('https://www.gstatic.com/recaptcha/');
 
 		// TODO: Slowly make the CSP more strict if `disable_custom_urls` is set. https://github.com/gary-kim/riotchat/issues/23#issuecomment-623920519 https://github.com/gary-kim/riotchat/blob/823260fdbc0d23d07c5413b436221bd0f49f6da9/lib/Controller/StaticController.php#L157-L164
 		$csp->addAllowedConnectDomain('*');
+		$csp->addAllowedConnectDomain('blob:');
 		$csp->addAllowedImageDomain('*');
 		$csp->addAllowedMediaDomain('*');
-		$csp->addAllowedMediaDomain('blob: ');
-		$csp->addAllowedObjectDomain('*');
-		$csp->addAllowedFrameDomain('blob: ');
-		$csp->addAllowedFrameAncestorDomain($this->request->getServerHost());
-		$csp->addAllowedWorkerSrcDomain($this->request->getServerHost());
+		$csp->addAllowedMediaDomain('blob:');
+		$csp->addAllowedMediaDomain('data:');
+		$csp->addAllowedFrameDomain('blob:');
+		$csp->addAllowedFrameDomain('data:');
+		$csp->addAllowedWorkerSrcDomain("'self'");
+		$csp->addAllowedWorkerSrcDomain('blob:');
 
 		// Needs to include current domain and the Jitsi instance being used
 		$csp->addAllowedFrameDomain('*');
